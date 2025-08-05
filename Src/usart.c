@@ -189,12 +189,11 @@ void usart2_print(uint8_t *tData, uint16_t dataSize)
 		};
 }
 
-HAL_StatusTypeDef usart2_receive(uint8_t *pData, uint16_t Size, uint32_t Timeout){
-
-	HAL_StatusTypeDef status = HAL_UART_Receive(&huart2, pData, Size, Timeout);
-	return status;
-
+void usart2_receive(uint8_t *pData, uint16_t Size){
+	// uint16_t RxLen = 0;
+	HAL_UART_Receive(&huart2, pData, Size, 0xFFFF);
 }
+
 
 /* USER CODE END 1 */
 

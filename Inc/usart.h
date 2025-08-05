@@ -32,7 +32,7 @@ extern "C" {
 /* USER CODE END Includes */
 
 extern UART_HandleTypeDef huart1;
-
+extern UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN Private defines */
 
@@ -48,7 +48,7 @@ void MX_USART2_UART_Init(void);
 
 //void usart2_print(uint8_t *tData, uint16_t dataSize);
 void usart2_print(uint8_t *tData, uint16_t dataSize);
-HAL_StatusTypeDef usart2_receive(uint8_t *pData, uint16_t Size, uint32_t Timeout);
+void usart2_receive(uint8_t *pData, uint16_t Size);
 #ifdef __cplusplus
 }
 #endif

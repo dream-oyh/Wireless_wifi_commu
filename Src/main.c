@@ -23,6 +23,7 @@
 #include "usart.h"
 #include "gpio.h"
 #include <stdbool.h>
+#include <string.h>
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdio.h"
@@ -40,6 +41,9 @@
 uint8_t sum = 0;
 uint8_t canbuf[8];
 uint16_t *m;
+uint8_t aRxBuffer;
+uint8_t Uart2_Rx_Cnt = 0;        //接收缓冲计数
+uint8_t RxBuffer[255] = {0x00};
 char *c;
 //UART_HandleTypeDef huart2;
 uint8_t txdataaaa[8] = {0X00,0X01,0X02,0X03,0X04,0X05,0X06,0X07};//待机控制器指令
@@ -150,9 +154,12 @@ int main(void)
   while (1)
   { 
     // 判断wifi是否连通
-		isWifiConnected = ProcessWifiConnected();
-			
+		// isWifiConnected = ProcessWifiConnected();
+		usart2_print(tx_close_first_data,8);
+		HAL_UART_Receive_IT(&huart2, (uint8_t *)&aRxBuffer, 1);
+		HAL_Delay(1000);
 	}
+
 }
 
 /**
@@ -231,6 +238,41 @@ void Error_Handler(void)
   {
   }
   /* USER CODE END Error_Handler_Debug */
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(huart);
+  /* NOTE: This function Should not be modified, when the callback is needed,
+           the HAL_UART_TxCpltCallback could be implemented in the user file
+   */
+ 
+    if(Uart2_Rx_Cnt >= 255)  //溢出判断
+    {
+        Uart2_Rx_Cnt = 0;
+        memset(RxBuffer,0x00,sizeof(RxBuffer));
+        HAL_UART_Transmit(&huart2, (uint8_t *)"数据溢出", 10,0xFFFF);     
+        
+    }
+    else
+    {
+        RxBuffer[Uart2_Rx_Cnt++] = aRxBuffer;   //接收数据转存
+    
+        if((RxBuffer[Uart2_Rx_Cnt-1] == 0x0A)&&(RxBuffer[Uart2_Rx_Cnt-2] == 0x0D))
+
+/*判断结束位结束位的意思是换行
+0A LF/NL(Line Feed/New Line) 换行键
+0D CR (Carriage Return) 回车键*/
+        {
+            HAL_UART_Transmit(&huart2, (uint8_t *)&RxBuffer, Uart2_Rx_Cnt,0xFFFF); //将收到的信息发送出去
+            while(HAL_UART_GetState(&huart2) == HAL_UART_STATE_BUSY_TX);//检测UART发送结束
+            Uart2_Rx_Cnt = 0;
+            memset(RxBuffer,0x00,sizeof(RxBuffer)); //清空数组  将数组清空为0
+        }
+    }
+    
+    HAL_UART_Receive_IT(&huart2, (uint8_t *)&aRxBuffer, 1);   //再开启接收中断
 }
 
 #ifdef  USE_FULL_ASSERT
