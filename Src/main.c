@@ -35,12 +35,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-//UART_HandleTypeDef huart2;
 uint8_t sum = 0;
 uint8_t canbuf[8];
 uint16_t *m;
 char *c;
-//UART_HandleTypeDef huart2;
 uint8_t txdataaaa[8] = {0X00,0X01,0X02,0X03,0X04,0X05,0X06,0X07};//待机控制器指令
 uint8_t txdataa[3] = {0X01,0X01,0X00};//
 uint8_t txdata[8] = {0X00,0X04,0X00,0X00,0XFF,0XFF,0XFF,0XFF};//超时错误告警
@@ -55,9 +53,6 @@ uint8_t txdata7[8] = {0X00,0X40,0X00,0X00,0XFF,0XFF,0XFF,0XFF};//过流终止
 uint8_t txdata8[8] = {0X00,0X00,0X00,0X10,0XFF,0XFF,0XFF,0XFF};//电压异常终止
 uint8_t txdata9[8] = {0X40,0X00,0X00,0X00,0XFF,0XFF,0XFF,0XFF};//充满正常终止
 uint8_t txdata10[8] = {0X7D,0X00,0X17,0X00,0X01,0XFF,0XFF,0XFF};//充电结束
-uint8_t tx_startup_first_data[8] = {0X01,0X05,0X00,0X00,0xFF,0X00,0X8C,0X3A}; // 初级继电器启动
-uint8_t tx_close_first_data[8] = {0X01,0X05,0X00,0X00,0x00,0X00,0XCD,0XCA}; // 初级继电器启动
-
 uint8_t aaa;
 uint8_t brm;
 uint8_t bcp;
@@ -131,7 +126,6 @@ int main(void)
   MX_GPIO_Init();
   MX_CAN_Init();
   MX_USART1_UART_Init();
-	MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 	Configure_Filter();//过滤器配置  STM32CubeMX自动生成的代码里没有，需要自己配置
   HAL_CAN_Start(&hcan);
@@ -168,18 +162,242 @@ int main(void)
 		x1[3] = '0';
 */	
 
-//			CAN_Send_Test(0x0123F156,tx_startup_first_data,8);// 发送控制器交互报文
-//			HAL_Delay(10000);
-//			CAN_Send_Test(0x0123F157,tx_close_first_data,8);// 发送控制器交互报文
-//			HAL_Delay(10000);
-	usart2_print(tx_startup_first_data,8);
-//	HAL_UART_Transmit(&huart2, tx_startup_first_data, 8, HAL_MAX_DELAY); // \r\n 是回车换行，方便查看
-	// printf("Hello World!1");
-	HAL_Delay(2000);
-	// printf("Hello World!2");
-//	HAL_UART_Transmit(&huart2, tx_close_first_data, 8, HAL_MAX_DELAY);
-  usart2_print(tx_close_first_data,8);
-	HAL_Delay(2000);
+    printf("测试开始\r\n");
+		do
+		{
+			CAN_Send_Test(0x0123F156,txdataaaa,8);//发送控制器交互报文
+			HAL_Delay(2000);
+			aaa = can_receive_msg(0x012356F1, canbuf);
+		}
+	  while( aaa == 0);//收到待机控制器反馈信息
+		printf("待机控制器收到充电指令！\r\n");
+    //待机控制器返回信息，则交互成功
+		
+//	CAN通讯握手和配置准备阶段
+	  printf("CAN通讯握手请求！\r\n");
+		
+		do
+		{
+			CAN_Send_Test(0x1826F456,txdataa,3);//发送不能辨识报文CRM
+			HAL_Delay(2000);
+			sum++;
+//			printf("%d\r\n",sum);
+			brm = can_receive_msg(0x182756F4, canbuf);
+//			if(sum > 20)
+//			{
+//				printf("超时错误告警!\r\n");
+//				Error_Warn();
+//       }
+		}
+	  while( brm == 0);//收到BMS和充电机辨识报文
+		printf("充电机与BMS握手成功！\r\n");
+		sum = 0;
+		
+		
+		do
+		{
+			CAN_Send_Test(0x1801F456,txdata0,8);//发送不能辨识报文CRM
+			
+			sum++;
+//			printf("%d\r\n",sum);
+			brm = can_receive_msg(0x1CEC56F4, canbuf);
+			HAL_Delay(500);
+//			if(sum > 20)
+//			{
+//				printf("超时错误告警!\r\n");
+//				Error_Warn();
+//       }
+		}
+	  while( brm == 0);//收到BMS和充电机辨识报文
+		printf("充电机与BMS握手成功！\r\n");
+		sum = 0;
+
+		
+		do
+		{
+			
+			CAN_Send_Test(0x1801F456,txdata1,8);//发送能辨识报文CRM
+			
+			sum++;
+//			printf("%d\r\n",sum);
+			bcp = can_receive_msg(0x1CEC56F4, canbuf);
+			HAL_Delay(500);
+//			if(sum > 20)
+//			{
+//				printf("超时错误告警!\r\n");
+//				Error_Warn();
+//       }
+		}
+	  while( bcp == 0);//收到电池充电参数报文
+		printf("收到bms充电参数进行充电机参数配置\r\n");
+		sum = 0;
+		do
+		{
+			
+			CAN_Send_Test(0x1807F456,txdata2,8);//发送时间同步
+			CAN_Send_Test(0x1808F456,txdata3,8);//发送充电机最大输出能力参数
+			HAL_Delay(2000);
+			sum++;
+//			printf("%d\r\n",sum);
+			bro = can_receive_msg(0x100956F4, canbuf);
+//			if(sum > 20)
+//			{
+//				printf("超时错误告警!\r\n");
+//				Error_Warn();
+//       }
+
+		}	
+	  while( bro == 0);//BMS准备就绪
+		printf("bms准备就绪!\r\n");
+	  sum = 0;
+     do
+		{
+			
+			CAN_Send_Test(0x100AF456,txdata4,1);//充电机准备就绪
+			
+			sum++;
+//			printf("%d\r\n",sum);
+			bcl = can_receive_msg(0x181056F4, canbuf);
+			HAL_Delay(500);
+//			if(sum > 20)
+//			{
+//				printf("超时错误告警!\r\n");
+//				Error_Warn();
+//       }
+		}
+	  while( bcl == 0);//BMS总状态发送
+		printf("充电机准备就绪!\r\n");
+		printf("开始充电!\r\n");
+		while(1)
+		{
+			sum = 0;
+			bcl = 0;
+			do
+		{
+			printf("等待bms充电需求\r\n");
+			
+			
+//			sum++;
+//			printf("%d\r\n",sum);
+			bcl = can_receive_msg(0x181056F4,canbuf);
+//		  aaa	= can_receive_msg(0x101956F4, canbuf);//bms发送中止请求
+//			HAL_Delay(20);
+//			if(sum > 20)
+//			{
+//				printf("超时错误告警!\r\n");
+//				Error_Warn();
+//       }
+		}
+		 while( bcl == 0);//BMS充电需求参数
+		 printf("收到bms充电需求\r\n");
+		
+		
+		// 这是需要校验的8位数据
+		x1[0] = 0X01;
+		x1[5] = 0XFF;
+		
+		for(int i=0;i<4;i++)
+		{
+		    x1[i+1] = canbuf[i];
+		}
+
+    uint8_t len = sizeof(x1) / sizeof(x1[0]);
+ 
+    // 计算校验和
+    uint16_t checksum_value = checksum(x1, len);
+
+    // 获取校验和的低位和高位
+    unsigned char low_byte = (unsigned char)(checksum_value & 0xFF);
+    unsigned char high_byte = (unsigned char)((checksum_value >> 8) & 0xFF);
+
+    // 将低位和高位添加到数组后面
+    x1[len] = low_byte;
+    x1[len + 1] = high_byte;
+
+		//将收到的bms信息发送给DC-DC充电在线调节电流
+		HAL_UART_Transmit(&huart1,x1,8,HAL_MAX_DELAY);
+		
+		//收到采集的电压电流值转发给bms
+		if(HAL_UART_Receive(&huart1,x2,8,HAL_MAX_DELAY) == HAL_OK)
+		{
+			CAN_Send_Test(0x1812F456,x2,8);//采样信息
+		
+		}
+		 
+//		sum++;
+//		printf("%d\r\n",sum);
+//		HAL_Delay(500);
+//			if(sum > 20)
+//			{
+//				printf("超时错误告警!\r\n");
+//				CAN_Send_Test(0x101AF456,txdata8,8);
+//				break;
+//       }
+//		
+		bst = can_receive_msg(0x101956F4, canbuf);
+		 if(bst==1)
+			 break;
+		
+		}
+		printf("充电终止！\r\n");
+		sum = 0;
+//		do
+//		{
+//			
+//			if(*(m+2) > 90)
+//			{
+//				CAN_Send_Test(0x101AF456,txdata6,8);//充电机温度过高终止
+//				printf("充电机温度过高终止！\r\n");
+//			}
+//			else if(*(m+1) < (400-14))
+//			{
+//				CAN_Send_Test(0x101AF456,txdata7,8);//充电机电流异常终止
+//				printf("充电机电流异常终止！\r\n");
+//			}
+//			else if(*m > 5000 && *m < 6000)
+//			{
+//				CAN_Send_Test(0x101AF456,txdata8,8);//充电机电压异常终止
+//				printf("充电机电压异常终止！\r\n");
+//			}
+//			else
+//			{
+//				CAN_Send_Test(0x101AF456,txdata9,8);//充电机充满电终止
+//			  printf("充电机充满电终止！\r\n");
+//			}
+//			HAL_Delay(2000);
+//			sum++;
+//			printf("%d\r\n",sum);
+//			bst = can_receive_msg(0x101956F4, canbuf);
+//			if(sum > 20)
+//			{
+//				printf("超时错误告警!\r\n");
+//				Error_Warn();
+//       }
+//		}
+//	   while( bst == 0);//BMS终止充电
+//		 printf("进入充电结束阶段！\r\n");
+//		sum = 0;
+		do
+		{
+			
+			CAN_Send_Test(0x101AF456,txdata9,8);//充电机终止充电请求
+			HAL_Delay(2000);
+			sum++;
+//			printf("%d\r\n",sum);
+			bsd = can_receive_msg(0x181C56F4, canbuf);
+			if(sum > 20)
+			{
+				printf("超时错误告警!\r\n");
+				Error_Warn();
+       }
+		}
+	  while( bsd == 0);//BMS统计数据
+		
+		
+		CAN_Send_Test(0x181DF456,txdata10,8);//充电机统计数据
+		printf("充电结束！\r\n");//结束充电
+			
+
   }
   /* USER CODE END 3 */
 }

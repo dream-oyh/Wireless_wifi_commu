@@ -146,10 +146,9 @@ void CAN_Send_Test(uint32_t ID, uint8_t txdata[],uint16_t len)
 {
     
 	  uint32_t pTxMailbox = 0;
-    // TxMessage.IDE = CAN_ID_EXT;     //设置ID类型
-		TxMessage.IDE = CAN_ID_STD;
-	  TxMessage.StdId = ID;
-	  // TxMessage.ExtId = ID;       //设置ID号
+    TxMessage.IDE = CAN_ID_EXT;     //设置ID类型
+//	  TxMessage.StdId = ID;
+	  TxMessage.ExtId = ID;       //设置ID号
     TxMessage.RTR = CAN_RTR_DATA;   //设置传送数据帧
 	  TxMessage.DLC = len;              //设置数据长度
   	HAL_CAN_AddTxMessage(&hcan,&TxMessage,txdata,&pTxMailbox);
