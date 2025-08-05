@@ -22,10 +22,11 @@
 #include "can.h"
 #include "usart.h"
 #include "gpio.h"
-
+#include <stdbool.h>
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdio.h"
+#include "wifi_test.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -70,6 +71,7 @@ uint8_t aaa = 1;
 
 uint8_t x1[6];
 uint8_t x2[8];
+
 
 
 int r;
@@ -135,53 +137,22 @@ int main(void)
   /* USER CODE BEGIN 2 */
 	Configure_Filter();//过滤器配置  STM32CubeMX自动生成的代码里没有，需要自己配置
   HAL_CAN_Start(&hcan);
-
+	bool isPrimaryRelayStart = false; // 初级继电器启动状态
+	bool isBMSReady = false; // BMS是否准备好充电状态
+	bool isChargerReady = false; // 充电机是否准备好充电状态
+	bool isWifiConnected = false; // Wifi是否连通
+	
+	
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   { 
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-		//上位机发出充电指令
-/*
-		while(1)
-		{
-			HAL_UART_Receive(&huart1,(uint8_t *)&x1,4,HAL_MAX_DELAY);
-			if(x1[0] == 'h' && x1[1] == 'o' && x1[2] == 'm' && x1[3] == 'e' )
-			{
-				printf("right!\r\n");
-				break;
-			}
-			else
-			{
-				printf("error!\r\n");
-			}	
-		}
-
-		//当收到上位机发出的home的指令时，则充电机开始与待机控制器交互
-		x1[0] = '0';
-		x1[1] = '0';
-		x1[2] = '0';
-		x1[3] = '0';
-*/	
-
-//			CAN_Send_Test(0x0123F156,tx_startup_first_data,8);// 发送控制器交互报文
-//			HAL_Delay(10000);
-//			CAN_Send_Test(0x0123F157,tx_close_first_data,8);// 发送控制器交互报文
-//			HAL_Delay(10000);
-	usart2_print(tx_startup_first_data,8);
-//	HAL_UART_Transmit(&huart2, tx_startup_first_data, 8, HAL_MAX_DELAY); // \r\n 是回车换行，方便查看
-	// printf("Hello World!1");
-	HAL_Delay(2000);
-	// printf("Hello World!2");
-//	HAL_UART_Transmit(&huart2, tx_close_first_data, 8, HAL_MAX_DELAY);
-  usart2_print(tx_close_first_data,8);
-	HAL_Delay(2000);
-  }
-  /* USER CODE END 3 */
+    // 判断wifi是否连通
+		isWifiConnected = ProcessWifiConnected();
+			
+	}
 }
 
 /**

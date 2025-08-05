@@ -48,6 +48,7 @@ void MX_USART2_UART_Init(void);
 
 //void usart2_print(uint8_t *tData, uint16_t dataSize);
 void usart2_print(uint8_t *tData, uint16_t dataSize);
+HAL_StatusTypeDef usart2_receive(uint8_t *pData, uint16_t Size, uint32_t Timeout);
 #ifdef __cplusplus
 }
 #endif
